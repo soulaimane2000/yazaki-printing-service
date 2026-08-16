@@ -1,0 +1,91 @@
+# Cahier des charges contenant des données personnelles et industrielles
+# Versionnement à confirmer avec l'encadrant.
+/docs/cahier_charge_PFA_YAZAKI.pdf
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven
+/target/
+**/target/
+.flattened-pom.xml
+dependency-reduced-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Spring Boot : configurations et fichiers locaux
+application-local.properties
+application-local.yml
+application-local.yaml
+application-secret.properties
+application-secret.yml
+application-secret.yaml
+spring-shell.log
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+/out/
+
+# Visual Studio Code
+.vscode/
+
+# React / Node.js
+node_modules/
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+.pnp.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+coverage/
+.next/
+.nuxt/
+.parcel-cache/
+.vite/
+
+# Docker : données locales et fichiers d'exécution
+.docker/
+docker-data/
+*.pid
+*.pid.lock
+
+# Variables d'environnement et secrets locaux
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Fichiers temporaires
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+Desktop.ini
