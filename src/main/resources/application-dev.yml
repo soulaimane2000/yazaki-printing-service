@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:printing_service}"
+    username: ${DB_USERNAME:printing_service}
+    password: ${DB_PASSWORD:printing_service_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

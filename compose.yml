@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-printing_service}
+      POSTGRES_USER: ${DB_USERNAME:-printing_service}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-printing_service_dev}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - printing-service-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-printing_service} -d ${DB_NAME:-printing_service}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  printing-service-postgres-data:
