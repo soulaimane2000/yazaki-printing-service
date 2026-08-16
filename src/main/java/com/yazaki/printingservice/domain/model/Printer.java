@@ -1,0 +1,81 @@
+package com.yazaki.printingservice.domain.model;
+
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+@Entity
+@Table(name = "printer")
+public class Printer extends AuditableEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @NotBlank
+    @Size(max = 64)
+    @Column(nullable = false, unique = true, length = 64)
+    private String code;
+
+    @NotBlank
+    @Size(max = 128)
+    @Column(nullable = false, length = 128)
+    private String name;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private PrinterType type;
+
+    @Column(nullable = false)
+    private boolean enabled;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
+
+    protected Printer() {
+    }
+
+    public Printer(String code, String name, PrinterType type) {
+        this.code = code;
+        this.name = name;
+        this.type = type;
+        this.enabled = true;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public PrinterType getType() {
+        return type;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+}
