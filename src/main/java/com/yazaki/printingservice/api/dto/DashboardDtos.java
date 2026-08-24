@@ -5,4 +5,5 @@ public final class DashboardDtos { private DashboardDtos(){}
  public record PrinterStatusCount(PrinterStatus status,long count){}
  public record ErrorItem(UUID jobId,String errorCode,String errorMessage,Instant occurredAt){}
  public record Trend(LocalDate day,long count){}
+ public record Distribution(String key,long count){}
 }

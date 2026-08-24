@@ -15,4 +15,6 @@ public final class PrintJobDtos {
    int maxRetries, Instant nextAttemptAt, Instant createdAt, Instant updatedAt, Instant completedAt,
    String errorCode, String errorMessage, UUID reprintOfJobId) {}
  public record Event(UUID id, long sequenceNumber, PrintJobStatus eventType, String message, Instant createdAt) {}
+ public record Attempt(UUID id, int attemptNumber, Instant startedAt, Instant completedAt,
+   PrintAttemptResult result, String errorCode, String errorMessage) {}
 }

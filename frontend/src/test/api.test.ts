@@ -1,0 +1,3 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'; import { api } from '../api';
+afterEach(()=>vi.unstubAllGlobals());
+describe('api client',()=>{it('maps structured backend errors',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({status:409,code:'CONFLICT',message:'Duplicate content',fieldErrors:{}}),{status:409,headers:{'Content-Type':'application/json'}})));await expect(api.jobAction('job','retry')).rejects.toMatchObject({status:409,code:'CONFLICT',message:'Duplicate content'})});it('reports network failures clearly',async()=>{vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')));await expect(api.health()).rejects.toMatchObject({status:0,code:'NETWORK_ERROR'})})});

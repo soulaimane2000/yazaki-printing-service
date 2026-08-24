@@ -4,8 +4,8 @@ import org.springframework.data.domain.*; import org.springframework.data.jpa.do
 import com.yazaki.printingservice.api.dto.PrintJobDtos; import com.yazaki.printingservice.api.error.*; import com.yazaki.printingservice.domain.model.*; import com.yazaki.printingservice.domain.repository.*;
 @Service
 public class PrintJobService {
- private final PrintRequestRepository requests; private final PrintJobRepository jobs; private final PrinterRepository printers; private final PrintEventRepository events;
- public PrintJobService(PrintRequestRepository requests,PrintJobRepository jobs,PrinterRepository printers,PrintEventRepository events){this.requests=requests;this.jobs=jobs;this.printers=printers;this.events=events;}
+ private final PrintRequestRepository requests; private final PrintJobRepository jobs; private final PrinterRepository printers; private final PrintEventRepository events; private final PrintAttemptRepository attempts;
+ public PrintJobService(PrintRequestRepository requests,PrintJobRepository jobs,PrinterRepository printers,PrintEventRepository events,PrintAttemptRepository attempts){this.requests=requests;this.jobs=jobs;this.printers=printers;this.events=events;this.attempts=attempts;}
  @Transactional public CreationResult create(PrintJobDtos.Create input){
   String hash=hash(input); var existing=requests.findBySourceSystemAndExternalRequestId(input.sourceSystem(),input.externalRequestId());
   if(existing.isPresent()){if(!existing.get().getPayloadHash().equals(hash))throw new ConflictException("The idempotency key already exists with different content"); return new CreationResult(view(jobs.findFirstByPrintRequestIdOrderByCreatedAtAsc(existing.get().getId()).orElseThrow()),false);}
@@ -17,6 +17,7 @@ public class PrintJobService {
  }
  @Transactional(readOnly=true) public PrintJobDtos.Job get(UUID id){return view(entity(id));}
  @Transactional(readOnly=true) public List<PrintJobDtos.Event> events(UUID id){entity(id);return events.findAllByPrintJobIdOrderBySequenceNumberAsc(id).stream().map(e->new PrintJobDtos.Event(e.getId(),e.getSequenceNumber(),e.getStatus(),e.getDetails(),e.getOccurredAt())).toList();}
+ @Transactional(readOnly=true) public List<PrintJobDtos.Attempt> attempts(UUID id){entity(id);return attempts.findByPrintJobIdOrderByAttemptNumber(id).stream().map(a->new PrintJobDtos.Attempt(a.getId(),a.getAttemptNumber(),a.getStartedAt(),a.getCompletedAt(),a.getResult(),a.getErrorCode(),a.getErrorMessage())).toList();}
  @Transactional(readOnly=true) public Page<PrintJobDtos.Job> search(PrintJobStatus status,PrinterType type,UUID printerId,String orderId,Instant from,Instant to,Pageable pageable){
   Specification<PrintJob> s=(r,q,b)->b.conjunction(); if(status!=null)s=s.and((r,q,b)->b.equal(r.get("status"),status)); if(type!=null)s=s.and((r,q,b)->b.equal(r.get("printRequest").get("printType"),type)); if(printerId!=null)s=s.and((r,q,b)->b.equal(r.get("printer").get("id"),printerId)); if(orderId!=null)s=s.and((r,q,b)->b.equal(r.get("printRequest").get("orderId"),orderId)); if(from!=null)s=s.and((r,q,b)->b.greaterThanOrEqualTo(r.get("createdAt"),from)); if(to!=null)s=s.and((r,q,b)->b.lessThanOrEqualTo(r.get("createdAt"),to)); return jobs.findAll(s,pageable).map(this::view); }
  @Transactional public PrintJobDtos.Job cancel(UUID id){var j=entity(id);if(j.getStatus()==PrintJobStatus.PRINTED||j.getStatus()==PrintJobStatus.CANCELLED)throw new BusinessRuleException("Job cannot be cancelled from status "+j.getStatus());transition(j,PrintJobStatus.CANCELLED,"Job cancelled");return view(j);}

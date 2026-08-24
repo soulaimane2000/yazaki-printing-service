@@ -9,5 +9,7 @@ import com.yazaki.printingservice.api.dto.*; import com.yazaki.printingservice.d
  @Transactional(readOnly=true) public List<DashboardDtos.PrinterStatusCount> printerStatus(){return Arrays.stream(PrinterStatus.values()).map(s->new DashboardDtos.PrinterStatusCount(s,printers.countByStatusAndEnabledTrue(s))).toList();}
  @Transactional(readOnly=true) public Page<DashboardDtos.ErrorItem> errors(Pageable p){return jobs.findAll((r,q,b)->b.equal(r.get("status"),PrintJobStatus.FAILED),p).map(j->new DashboardDtos.ErrorItem(j.getId(),j.getErrorCode(),j.getErrorMessage(),j.getCompletedAt()));}
  public List<DashboardDtos.Trend> trends(int days){return jdbc.query("select cast(created_at at time zone 'UTC' as date) day,count(*) total from print_job where created_at >= now() - (? * interval '1 day') group by day order by day",(rs,n)->new DashboardDtos.Trend(rs.getObject("day",LocalDate.class),rs.getLong("total")),days);}
+ public List<DashboardDtos.Distribution> typeDistribution(){return jdbc.query("select print_type key,count(*) total from print_request group by print_type order by print_type",(rs,n)->new DashboardDtos.Distribution(rs.getString("key"),rs.getLong("total")));}
+ public List<DashboardDtos.Distribution> statusDistribution(){return jdbc.query("select status key,count(*) total from print_job group by status order by status",(rs,n)->new DashboardDtos.Distribution(rs.getString("key"),rs.getLong("total")));}
  private long count(PrintJobStatus s){return jobs.countByStatus(s);}
 }

@@ -7,6 +7,8 @@ spring:
     open-in-view: false
 
 printing:
+  web:
+    allowed-origin: ${FRONTEND_ALLOWED_ORIGIN:http://localhost:5173}
   queue:
     enabled: ${PRINT_QUEUE_ENABLED:true}
     poll-delay: ${PRINT_QUEUE_POLL_DELAY_MS:2000}

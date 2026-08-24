@@ -7,4 +7,6 @@ public class DashboardController { private final DashboardService service; publi
  @GetMapping("/printer-status") List<DashboardDtos.PrinterStatusCount> printerStatus(){return service.printerStatus();}
  @GetMapping("/errors") Page<DashboardDtos.ErrorItem> errors(@PageableDefault(size=10,sort="createdAt",direction=Sort.Direction.DESC)Pageable p){return service.errors(p);}
  @GetMapping("/job-trends") List<DashboardDtos.Trend> trends(@RequestParam(defaultValue="14") int days){return service.trends(Math.min(Math.max(days,1),365));}
+ @GetMapping("/type-distribution") List<DashboardDtos.Distribution> typeDistribution(){return service.typeDistribution();}
+ @GetMapping("/status-distribution") List<DashboardDtos.Distribution> statusDistribution(){return service.statusDistribution();}
 }

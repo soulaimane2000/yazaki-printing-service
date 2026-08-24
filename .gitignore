@@ -43,6 +43,9 @@ spring-shell.log
 
 # React / Node.js
 node_modules/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 .npm/
 .yarn/cache/
 .yarn/unplugged/
