@@ -1,0 +1,8 @@
+package com.yazaki.printingservice.application;
+import static org.junit.jupiter.api.Assertions.*; import static org.mockito.Mockito.*; import java.time.Instant; import java.util.List; import org.junit.jupiter.api.Test;
+import com.yazaki.printingservice.application.port.PrintAdapter; import com.yazaki.printingservice.domain.model.*; import com.yazaki.printingservice.infrastructure.adapter.*;
+class RoutingAndAdapterTest {
+ @Test void routesEachPrinterType(){PrintAdapter label=mock(PrintAdapter.class),document=mock(PrintAdapter.class);when(label.supports()).thenReturn(PrinterType.LABEL);when(document.supports()).thenReturn(PrinterType.DOCUMENT);var routing=new RoutingEngine(List.of(label,document));assertSame(label,routing.route(PrinterType.LABEL));assertSame(document,routing.route(PrinterType.DOCUMENT));}
+ @Test void fakeAdaptersExposeConfiguredOutcomes(){var request=new PrintRequest("demo",Instant.now());var job=new PrintJob(request,new Printer("DEMO","Demo",PrinterType.LABEL));assertTrue(new FakeLabelPrintAdapter(FakeAdapterMode.SUCCESS).submit(job).successful());assertTrue(new FakeLabelPrintAdapter(FakeAdapterMode.TIMEOUT).submit(job).temporary());assertFalse(new FakeCupsPrintAdapter(FakeAdapterMode.PERMANENT_ERROR).submit(job).temporary());}
+ @Test void submittedAndPrintedRemainDistinct(){var job=new PrintJob(new PrintRequest("demo",Instant.now()),new Printer("DEMO","Demo",PrinterType.LABEL));var at=Instant.parse("2026-01-01T00:00:00Z");job.transitionTo(PrintJobStatus.SUBMITTED,at,null,null);assertNull(job.getPrintedAt());job.transitionTo(PrintJobStatus.PRINTED,at.plusSeconds(1),null,null);assertNotNull(job.getPrintedAt());}
+}

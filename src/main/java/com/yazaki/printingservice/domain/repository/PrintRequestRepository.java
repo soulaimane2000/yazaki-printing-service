@@ -10,4 +10,5 @@ import com.yazaki.printingservice.domain.model.PrintRequest;
 public interface PrintRequestRepository extends JpaRepository<PrintRequest, UUID> {
 
     Optional<PrintRequest> findByRequestReference(String requestReference);
+    Optional<PrintRequest> findBySourceSystemAndExternalRequestId(String sourceSystem, String externalRequestId);
 }

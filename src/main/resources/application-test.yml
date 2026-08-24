@@ -8,5 +8,11 @@ spring:
 springdoc:
   api-docs:
     enabled: false
+
+printing:
+  queue:
+    enabled: false
+  demo-data:
+    enabled: false
   swagger-ui:
     enabled: false

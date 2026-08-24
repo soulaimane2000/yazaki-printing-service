@@ -1,0 +1,3 @@
+package com.yazaki.printingservice.application;
+import java.util.*; import org.springframework.stereotype.Component; import com.yazaki.printingservice.application.port.PrintAdapter; import com.yazaki.printingservice.domain.model.PrinterType;
+@Component public class RoutingEngine { private final Map<PrinterType,PrintAdapter> adapters=new EnumMap<>(PrinterType.class); public RoutingEngine(List<PrintAdapter> values){values.forEach(a->adapters.put(a.supports(),a));} public PrintAdapter route(PrinterType type){var a=adapters.get(type);if(a==null)throw new IllegalStateException("No adapter for "+type);return a;} }

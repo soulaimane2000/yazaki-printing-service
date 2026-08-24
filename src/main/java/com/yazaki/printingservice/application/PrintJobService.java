@@ -1,0 +1,30 @@
+package com.yazaki.printingservice.application;
+import java.nio.charset.StandardCharsets; import java.security.*; import java.time.*; import java.util.*;
+import org.springframework.data.domain.*; import org.springframework.data.jpa.domain.Specification; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
+import com.yazaki.printingservice.api.dto.PrintJobDtos; import com.yazaki.printingservice.api.error.*; import com.yazaki.printingservice.domain.model.*; import com.yazaki.printingservice.domain.repository.*;
+@Service
+public class PrintJobService {
+ private final PrintRequestRepository requests; private final PrintJobRepository jobs; private final PrinterRepository printers; private final PrintEventRepository events;
+ public PrintJobService(PrintRequestRepository requests,PrintJobRepository jobs,PrinterRepository printers,PrintEventRepository events){this.requests=requests;this.jobs=jobs;this.printers=printers;this.events=events;}
+ @Transactional public CreationResult create(PrintJobDtos.Create input){
+  String hash=hash(input); var existing=requests.findBySourceSystemAndExternalRequestId(input.sourceSystem(),input.externalRequestId());
+  if(existing.isPresent()){if(!existing.get().getPayloadHash().equals(hash))throw new ConflictException("The idempotency key already exists with different content"); return new CreationResult(view(jobs.findFirstByPrintRequestIdOrderByCreatedAtAsc(existing.get().getId()).orElseThrow()),false);}
+  var printer=printers.findById(input.printerId()).orElseThrow(()->new ResourceNotFoundException("Printer not found"));
+  if(!printer.isEnabled())throw new BusinessRuleException("Printer is deactivated"); if(printer.getType()!=input.printType())throw new BusinessRuleException("Printer type does not match printType");
+  var now=Instant.now(); var request=requests.save(new PrintRequest(input.externalRequestId(),input.sourceSystem(),input.orderId(),input.printType(),input.payload(),hash,now));
+  var job=new PrintJob(request,printer); job.setMaxRetries(input.maxRetries()==null?3:input.maxRetries()); jobs.save(job); transition(job,PrintJobStatus.RECEIVED,"Request received"); transition(job,PrintJobStatus.VALIDATED,"Request validated"); transition(job,PrintJobStatus.QUEUED,"Job queued");
+  return new CreationResult(view(job),true);
+ }
+ @Transactional(readOnly=true) public PrintJobDtos.Job get(UUID id){return view(entity(id));}
+ @Transactional(readOnly=true) public List<PrintJobDtos.Event> events(UUID id){entity(id);return events.findAllByPrintJobIdOrderBySequenceNumberAsc(id).stream().map(e->new PrintJobDtos.Event(e.getId(),e.getSequenceNumber(),e.getStatus(),e.getDetails(),e.getOccurredAt())).toList();}
+ @Transactional(readOnly=true) public Page<PrintJobDtos.Job> search(PrintJobStatus status,PrinterType type,UUID printerId,String orderId,Instant from,Instant to,Pageable pageable){
+  Specification<PrintJob> s=(r,q,b)->b.conjunction(); if(status!=null)s=s.and((r,q,b)->b.equal(r.get("status"),status)); if(type!=null)s=s.and((r,q,b)->b.equal(r.get("printRequest").get("printType"),type)); if(printerId!=null)s=s.and((r,q,b)->b.equal(r.get("printer").get("id"),printerId)); if(orderId!=null)s=s.and((r,q,b)->b.equal(r.get("printRequest").get("orderId"),orderId)); if(from!=null)s=s.and((r,q,b)->b.greaterThanOrEqualTo(r.get("createdAt"),from)); if(to!=null)s=s.and((r,q,b)->b.lessThanOrEqualTo(r.get("createdAt"),to)); return jobs.findAll(s,pageable).map(this::view); }
+ @Transactional public PrintJobDtos.Job cancel(UUID id){var j=entity(id);if(j.getStatus()==PrintJobStatus.PRINTED||j.getStatus()==PrintJobStatus.CANCELLED)throw new BusinessRuleException("Job cannot be cancelled from status "+j.getStatus());transition(j,PrintJobStatus.CANCELLED,"Job cancelled");return view(j);}
+ @Transactional public PrintJobDtos.Job retry(UUID id){var j=entity(id);if(j.getStatus()!=PrintJobStatus.FAILED&&j.getStatus()!=PrintJobStatus.RETRY_SCHEDULED)throw new BusinessRuleException("Only failed or retry-scheduled jobs can be retried");if(j.getRetryCount()>=j.getMaxRetries())throw new BusinessRuleException("Maximum retries reached");transition(j,PrintJobStatus.QUEUED,"Manual retry queued");return view(j);}
+ @Transactional public PrintJobDtos.Job reprint(UUID id){var original=entity(id);var j=new PrintJob(original.getPrintRequest(),original.getPrinter(),original);j.setMaxRetries(original.getMaxRetries());jobs.save(j);transition(j,PrintJobStatus.RECEIVED,"Reprint created");transition(j,PrintJobStatus.VALIDATED,"Reprint validated");transition(j,PrintJobStatus.QUEUED,"Reprint queued");return view(j);}
+ private void transition(PrintJob j,PrintJobStatus status,String message){j.transitionTo(status,Instant.now(),null,null);events.save(new PrintEvent(j,j.getPrintEvents().size()+1,status,Instant.now(),message));}
+ private PrintJob entity(UUID id){return jobs.findById(id).orElseThrow(()->new ResourceNotFoundException("Print job not found"));}
+ public PrintJobDtos.Job view(PrintJob j){var r=j.getPrintRequest();return new PrintJobDtos.Job(j.getId(),r.getId(),r.getSourceSystem(),r.getExternalRequestId(),r.getOrderId(),r.getPrintType(),j.getPrinter().getId(),j.getPrinter().getName(),j.getStatus(),j.getRetryCount(),j.getMaxRetries(),j.getNextAttemptAt(),j.getCreatedAt(),j.getUpdatedAt(),j.getCompletedAt(),j.getErrorCode(),j.getErrorMessage(),j.getReprintOfJob()==null?null:j.getReprintOfJob().getId());}
+ private String hash(PrintJobDtos.Create i){String v=String.join("\u001f",i.sourceSystem(),i.externalRequestId(),Objects.toString(i.orderId(),""),i.printType().name(),i.payload(),i.printerId().toString());try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(v.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
+ public record CreationResult(PrintJobDtos.Job job,boolean created){}
+}

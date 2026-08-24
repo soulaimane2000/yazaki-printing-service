@@ -14,3 +14,7 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+printing:
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:true}

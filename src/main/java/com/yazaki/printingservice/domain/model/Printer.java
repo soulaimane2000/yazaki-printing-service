@@ -38,6 +38,23 @@ public class Printer extends AuditableEntity {
     @Column(nullable = false, length = 32)
     private PrinterType type;
 
+    @Size(max = 128)
+    @Column(length = 128)
+    private String location;
+
+    @Size(max = 2000)
+    @Column(name = "technical_configuration", length = 2000)
+    private String technicalConfiguration;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private PrinterStatus status;
+
+    @Size(max = 128)
+    @Column(name = "cups_queue_name", length = 128)
+    private String cupsQueueName;
+
     @Column(nullable = false)
     private boolean enabled;
 
@@ -52,8 +69,22 @@ public class Printer extends AuditableEntity {
         this.code = code;
         this.name = name;
         this.type = type;
+        this.status = PrinterStatus.UNKNOWN;
         this.enabled = true;
     }
+
+    public void update(String name, PrinterType type, String location, String technicalConfiguration,
+            PrinterStatus status, String cupsQueueName) {
+        this.name = name;
+        this.type = type;
+        this.location = location;
+        this.technicalConfiguration = technicalConfiguration;
+        this.status = status;
+        this.cupsQueueName = cupsQueueName;
+    }
+
+    public void activate() { this.enabled = true; }
+    public void deactivate() { this.enabled = false; }
 
     public UUID getId() {
         return id;
@@ -70,6 +101,11 @@ public class Printer extends AuditableEntity {
     public PrinterType getType() {
         return type;
     }
+
+    public String getLocation() { return location; }
+    public String getTechnicalConfiguration() { return technicalConfiguration; }
+    public PrinterStatus getStatus() { return status; }
+    public String getCupsQueueName() { return cupsQueueName; }
 
     public boolean isEnabled() {
         return enabled;

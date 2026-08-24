@@ -54,6 +54,23 @@ public class PrintJob extends AuditableEntity {
     @Column(name = "printed_at")
     private Instant printedAt;
 
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+    @Column(name = "max_retries", nullable = false)
+    private int maxRetries;
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+    @Column(name = "processing_started_at")
+    private Instant processingStartedAt;
+    @Column(name = "completed_at")
+    private Instant completedAt;
+    @Column(name = "error_code", length = 64)
+    private String errorCode;
+    @Column(name = "error_message", length = 1000)
+    private String errorMessage;
+    @Column(name = "worker_id", length = 128)
+    private String workerId;
+
     @OneToMany(mappedBy = "printJob")
     private List<PrintEvent> printEvents = new ArrayList<>();
 
@@ -73,7 +90,30 @@ public class PrintJob extends AuditableEntity {
         this.printer = printer;
         this.reprintOfJob = reprintOfJob;
         this.status = PrintJobStatus.RECEIVED;
+        this.maxRetries = 3;
         printRequest.attachJob(this);
+    }
+
+    public void setMaxRetries(int maxRetries) { this.maxRetries = maxRetries; }
+    public void transitionTo(PrintJobStatus newStatus, Instant now, String errorCode, String errorMessage) {
+        this.status = newStatus;
+        this.errorCode = errorCode;
+        this.errorMessage = errorMessage;
+        if (newStatus == PrintJobStatus.RECEIVED || newStatus == PrintJobStatus.VALIDATED
+                || newStatus == PrintJobStatus.QUEUED || newStatus == PrintJobStatus.PROCESSING
+                || newStatus == PrintJobStatus.RETRY_SCHEDULED) {
+            this.completedAt = null;
+        }
+        if (newStatus == PrintJobStatus.PROCESSING) this.processingStartedAt = now;
+        if (newStatus == PrintJobStatus.SUBMITTED) this.submittedAt = now;
+        if (newStatus == PrintJobStatus.PRINTED) { if (this.submittedAt == null) this.submittedAt = now; this.printedAt = now; this.completedAt = now; }
+        if (newStatus == PrintJobStatus.FAILED || newStatus == PrintJobStatus.CANCELLED) this.completedAt = now;
+        if (newStatus != PrintJobStatus.RETRY_SCHEDULED) this.nextAttemptAt = null;
+    }
+    public void reserve(String workerId, Instant now) { this.workerId = workerId; transitionTo(PrintJobStatus.PROCESSING, now, null, null); }
+    public void scheduleRetry(Instant nextAttemptAt, String code, String message) {
+        this.retryCount++; this.nextAttemptAt = nextAttemptAt; this.status = PrintJobStatus.RETRY_SCHEDULED;
+        this.errorCode = code; this.errorMessage = message; this.workerId = null;
     }
 
     void attachEvent(PrintEvent printEvent) {
@@ -115,4 +155,12 @@ public class PrintJob extends AuditableEntity {
     public long getVersion() {
         return version;
     }
+    public int getRetryCount() { return retryCount; }
+    public int getMaxRetries() { return maxRetries; }
+    public Instant getNextAttemptAt() { return nextAttemptAt; }
+    public Instant getProcessingStartedAt() { return processingStartedAt; }
+    public Instant getCompletedAt() { return completedAt; }
+    public String getErrorCode() { return errorCode; }
+    public String getErrorMessage() { return errorMessage; }
+    public String getWorkerId() { return workerId; }
 }
